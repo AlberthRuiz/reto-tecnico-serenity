@@ -74,18 +74,16 @@ Reqres.in requiere una API key gratuita. Obtenerla asi:
 1. Ir a https://app.reqres.in/signup
 2. Registrarse (no pide tarjeta de credito)
 3. Copiar la API key del dashboard (formato `reqres_xxxxxxxxxx`)
-4. Crear archivo `.env` en la raiz del proyecto:
-
-```cmd
-copy .env.example .env
-```
-
-5. Editar `.env` y pegar tu key:
+4. Crear un archivo `.env` en la raiz del proyecto con el siguiente contenido:
 
 ```
 REQRES_API_KEY=reqres_tu_key_aqui
 PLAYWRIGHT_HEADLESS=true
 ```
+
+Reemplazar `reqres_tu_key_aqui` con tu API key real.
+
+El archivo `.env` esta en `.gitignore` — no se commitea al repositorio.
 
 ### Paso 4: Ejecutar las pruebas
 
@@ -155,8 +153,7 @@ reto-tecnico-serenity/
 ├── serenity.conf                        Configuracion Serenity (URLs, browser)
 ├── run-tests.cmd                        Wrapper que carga .env y ejecuta
 ├── mvnw / mvnw.cmd                      Maven Wrapper (incluido, no requiere instalar)
-├── .env                                 Tu API key (gitignored)
-├── .env.example                         Template de .env
+├── .env                                 Tu API key (gitignored, se crea manual)
 ├── .github/workflows/ci.yml             CI/CD (GitHub Actions)
 ├── src/test/
 │   ├── java/com/prueba/tecnica/
