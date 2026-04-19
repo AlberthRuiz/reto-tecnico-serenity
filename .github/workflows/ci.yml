@@ -28,14 +28,17 @@ jobs:
       - name: Compile project
         run: ./mvnw -B test-compile
 
-      - name: Install Playwright browsers
-        run: ./mvnw -B exec:java -Dexec.mainClass="com.microsoft.playwright.CLI" -Dexec.args="install --with-deps chromium" -Dexec.classpathScope=test
+      - name: Install Playwright browsers with system deps
+        run: |
+          ./mvnw -B exec:java \
+            -Dexec.mainClass="com.microsoft.playwright.CLI" \
+            -Dexec.args="install --with-deps chromium" \
+            -Dexec.classpathScope=test
 
-      - name: Run tests
+      - name: Run tests (forced headless via system property)
         env:
           REQRES_API_KEY: ${{ secrets.REQRES_API_KEY }}
-          PLAYWRIGHT_HEADLESS: 'true'
-        run: ./mvnw -B verify
+        run: ./mvnw -B verify -Dplaywright.headless=true
 
       - name: Upload Serenity report
         if: always()
