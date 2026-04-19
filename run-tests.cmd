@@ -7,5 +7,5 @@ if exist .env (
     )
 )
 
-mvnw.cmd clean verify %*
+mvnw.cmd clean verify -Dplaywright.headless=%PLAYWRIGHT_HEADLESS% %*
 endlocal
