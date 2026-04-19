@@ -1,14 +1,15 @@
 package com.prueba.tecnica.stepdefinitions.api;
 
 import com.prueba.tecnica.abilities.CallReqresApi;
+import com.prueba.tecnica.questions.api.ApiResponse;
 import com.prueba.tecnica.tasks.api.*;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import io.restassured.response.Response;
-import net.serenitybdd.rest.SerenityRest;
+import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.actors.OnStage;
+import net.serenitybdd.screenplay.ensure.Ensure;
 
 import java.time.Instant;
 import java.util.List;
@@ -49,20 +50,20 @@ public class UserApiSteps {
 
     @When("crea otro usuario con el nombre {string} y trabajo {string} otra vez")
     public void creaOtroUsuarioConElNombreYTrabajo(String name, String job) {
-        primerId = SerenityRest.lastResponse().jsonPath().getString("id");
-        OnStage.theActorInTheSpotlight().attemptsTo(
-                CreateUser.withNameAndJob(name, job)
-        );
+        Actor actor = OnStage.theActorInTheSpotlight();
+        primerId = actor.asksFor(ApiResponse.field("id"));
+        actor.attemptsTo(CreateUser.withNameAndJob(name, job));
     }
 
     @Then("la respuesta tiene codigo {int}")
     public void laRespuestaTieneCodigo(int code) {
-        assertThat(SerenityRest.lastResponse().statusCode()).isEqualTo(code);
+        OnStage.theActorInTheSpotlight()
+                .attemptsTo(Ensure.that(ApiResponse.statusCode()).isEqualTo(code));
     }
 
     @Then("los dos ids generados son distintos")
     public void losIdsSonDistintos() {
-        String segundoId = SerenityRest.lastResponse().jsonPath().getString("id");
+        String segundoId = OnStage.theActorInTheSpotlight().asksFor(ApiResponse.field("id"));
         assertThat(segundoId)
                 .as("El segundo POST debe generar un id distinto al primero")
                 .isNotEqualTo(primerId)
@@ -71,16 +72,16 @@ public class UserApiSteps {
 
     @And("la respuesta contiene una lista con al menos un usuario")
     public void contieneListaConAlMenosUnUsuario() {
-        Response response = SerenityRest.lastResponse();
-        List<?> data = response.jsonPath().getList("data");
+        List<Map<String, Object>> data = OnStage.theActorInTheSpotlight()
+                .asksFor(ApiResponse.objectList("data"));
         assertThat(data).isNotNull().isNotEmpty();
     }
 
     @And("la respuesta contiene los campos de paginacion:")
     public void contieneCamposPaginacion(List<String> campos) {
-        Response response = SerenityRest.lastResponse();
+        Actor actor = OnStage.theActorInTheSpotlight();
         for (String campo : campos) {
-            Object valor = response.jsonPath().get(campo);
+            String valor = actor.asksFor(ApiResponse.field(campo));
             assertThat(valor)
                     .as("Campo '%s' en respuesta", campo)
                     .isNotNull();
@@ -89,20 +90,22 @@ public class UserApiSteps {
 
     @And("todos los emails terminan en {string}")
     public void todosLosEmailsTerminanEn(String suffix) {
-        List<String> emails = SerenityRest.lastResponse().jsonPath().getList("data.email", String.class);
+        List<String> emails = OnStage.theActorInTheSpotlight()
+                .asksFor(ApiResponse.stringList("data.email"));
         assertThat(emails).allMatch(email -> email.endsWith(suffix));
     }
 
     @And("todos los avatares son URLs con {string}")
     public void todosLosAvataresContienen(String fragment) {
-        List<String> avatars = SerenityRest.lastResponse().jsonPath().getList("data.avatar", String.class);
+        List<String> avatars = OnStage.theActorInTheSpotlight()
+                .asksFor(ApiResponse.stringList("data.avatar"));
         assertThat(avatars).allMatch(url -> url.contains(fragment));
     }
 
     @And("cada usuario contiene los campos:")
     public void cadaUsuarioContieneCampos(List<String> campos) {
-        Response response = SerenityRest.lastResponse();
-        List<Map<String, Object>> usuarios = response.jsonPath().getList("data");
+        List<Map<String, Object>> usuarios = OnStage.theActorInTheSpotlight()
+                .asksFor(ApiResponse.objectList("data"));
         for (Map<String, Object> usuario : usuarios) {
             assertThat(usuario.keySet()).containsAll(campos);
         }
@@ -110,38 +113,53 @@ public class UserApiSteps {
 
     @And("la respuesta contiene el nombre {string} y el trabajo {string}")
     public void contieneNombreYTrabajo(String name, String job) {
-        Response response = SerenityRest.lastResponse();
-        assertThat(response.jsonPath().getString("name")).isEqualTo(name);
-        assertThat(response.jsonPath().getString("job")).isEqualTo(job);
+        OnStage.theActorInTheSpotlight().attemptsTo(
+                Ensure.that(ApiResponse.field("name")).isEqualTo(name),
+                Ensure.that(ApiResponse.field("job")).isEqualTo(job)
+        );
     }
 
     @And("la respuesta contiene un id generado")
     public void contieneIdGenerado() {
-        String id = SerenityRest.lastResponse().jsonPath().getString("id");
+        String id = OnStage.theActorInTheSpotlight().asksFor(ApiResponse.field("id"));
         assertThat(id).isNotBlank();
     }
 
     @And("la respuesta contiene un updatedAt")
     public void contieneUpdatedAt() {
-        Response response = SerenityRest.lastResponse();
-        String updatedAt = response.jsonPath().getString("updatedAt");
+        String updatedAt = OnStage.theActorInTheSpotlight().asksFor(ApiResponse.field("updatedAt"));
         assertThat(updatedAt).isNotBlank();
         assertThat(Instant.parse(updatedAt)).isNotNull();
     }
 
     @And("el createdAt esta dentro de los ultimos 60 segundos")
     public void createdAtEsReciente() {
-        Instant createdAt = Instant.parse(SerenityRest.lastResponse().jsonPath().getString("createdAt"));
+        String createdAtStr = OnStage.theActorInTheSpotlight().asksFor(ApiResponse.field("createdAt"));
+        Instant createdAt = Instant.parse(createdAtStr);
         Instant hace60s = Instant.now().minusSeconds(60);
         assertThat(createdAt).isAfter(hace60s);
     }
 
     @And("todas las URLs de avatar responden 200")
     public void avataresResponden200() {
-        List<String> avatars = SerenityRest.lastResponse().jsonPath().getList("data.avatar", String.class);
+        Actor actor = OnStage.theActorInTheSpotlight();
+        List<String> avatars = actor.asksFor(ApiResponse.stringList("data.avatar"));
         for (String url : avatars) {
-            int code = SerenityRest.head(url).getStatusCode();
+            int code = actor.asksFor(ApiResponse.headStatusCode(url));
             assertThat(code).as("Avatar %s", url).isEqualTo(200);
+        }
+    }
+
+    @And("cada usuario tiene su avatar con su ID en la URL")
+    public void avatarCorrespondeConIdEnLaURL() {
+        List<Map<String, Object>> users = OnStage.theActorInTheSpotlight()
+                .asksFor(ApiResponse.objectList("data"));
+        for (Map<String, Object> user : users) {
+            Integer id = (Integer) user.get("id");
+            String avatar = (String) user.get("avatar");
+            assertThat(avatar)
+                    .as("Avatar usuario ID: %d", id)
+                    .contains("/" + id + "-image");
         }
     }
 }

@@ -56,3 +56,9 @@ Feature: [API] Gestion de usuarios por API Reqres
     When crea un usuario con el nombre "Esau" y trabajo "QA Junior"
     And crea otro usuario con el nombre "Renato" y trabajo "Lead RPA" otra vez
     Then los dos ids generados son distintos
+
+  @api @users @list @data-integrity
+  Scenario: El avatar de cada usuario corresponde con su ID
+    When solicita el listado de usuarios en la pagina 2
+    Then la respuesta tiene codigo 200
+    And cada usuario tiene su avatar con su ID en la URL
