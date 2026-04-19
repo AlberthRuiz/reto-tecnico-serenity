@@ -7,6 +7,11 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -28,22 +33,36 @@ jobs:
       - name: Compile project
         run: ./mvnw -B test-compile
 
-      - name: Install Playwright browsers with system deps
-        run: |
-          ./mvnw -B exec:java \
-            -Dexec.mainClass="com.microsoft.playwright.CLI" \
-            -Dexec.args="install --with-deps chromium" \
-            -Dexec.classpathScope=test
+      - name: Install Playwright browsers
+        run: ./mvnw -B exec:java -Dexec.mainClass="com.microsoft.playwright.CLI" -Dexec.args="install --with-deps chromium" -Dexec.classpathScope=test
 
-      - name: Run tests (forced headless via system property)
+      - name: Run tests
         env:
           REQRES_API_KEY: ${{ secrets.REQRES_API_KEY }}
         run: ./mvnw -B verify -Dplaywright.headless=true
 
-      - name: Upload Serenity report
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main' && always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: target/site/serenity/
+
+      - name: Upload Serenity report (backup)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: serenity-report
           path: target/site/serenity/
           retention-days: 30
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
