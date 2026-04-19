@@ -26,7 +26,7 @@ Pruebas web sobre `https://selenium.dev` y pruebas API sobre `https://reqres.in`
 
 ---
 
-## Cobertura de pruebas (12 scenarios)
+## Cobertura de pruebas (13 scenarios)
 
 **Web (selenium.dev)** — 5 scenarios
 - Caso 1: Carga de la pagina principal con titulo esperado
@@ -35,7 +35,7 @@ Pruebas web sobre `https://selenium.dev` y pruebas API sobre `https://reqres.in`
 - Bonus: URL inexistente muestra pagina 404
 - Bonus: Busqueda sin resultados muestra mensaje "No results"
 
-**API (reqres.in)** — 7 scenarios
+**API (reqres.in)** — 8 scenarios
 - Caso 4: Listar usuarios y validar contenido paginado
 - Caso 5: Crear usuario via POST
 - Caso 6: Actualizar usuario via PUT
@@ -43,6 +43,7 @@ Pruebas web sobre `https://selenium.dev` y pruebas API sobre `https://reqres.in`
 - Bonus: URLs de avatares responden HTTP 200
 - Bonus: Crear mismo usuario 2 veces genera IDs distintos (idempotencia)
 - Bonus: Integridad de datos (emails y avatares pertenecen al dominio esperado)
+- Bonus: Cada usuario tiene su avatar con su ID en la URL (consistencia data)
 
 ---
 
@@ -95,7 +96,7 @@ El script:
 - Carga el `.env` automaticamente
 - Descarga Maven la primera vez (unos 30 seg)
 - Descarga Playwright Chromium la primera vez (unos 2 min, ~100 MB)
-- Ejecuta los 12 scenarios
+- Ejecuta los 13 scenarios
 - Genera el reporte Serenity en `target/site/serenity/index.html`
 
 ---
@@ -119,9 +120,9 @@ Correr solo una seccion de las pruebas:
 
 | Comando | Que corre |
 |---|---|
-| `run-tests.cmd` | Todo (web + API) — 12 scenarios |
+| `run-tests.cmd` | Todo (web + API) — 13 scenarios |
 | `run-tests.cmd "-Dcucumber.filter.tags=@web"` | Solo web (5 scenarios) |
-| `run-tests.cmd "-Dcucumber.filter.tags=@api"` | Solo API (7 scenarios) |
+| `run-tests.cmd "-Dcucumber.filter.tags=@api"` | Solo API (8 scenarios) |
 | `run-tests.cmd "-Dcucumber.filter.tags=@homepage"` | Solo caso 1 |
 | `run-tests.cmd "-Dcucumber.filter.tags=@search"` | Solo caso 3 (busqueda) |
 
@@ -142,6 +143,20 @@ Correr solo una seccion de las pruebas:
 2. Seleccionar carpeta del proyecto
 3. Click derecho en `CucumberTestSuite.java` > `Run As > JUnit Test`
 4. Editar run configuration y agregar env var `REQRES_API_KEY`
+
+---
+
+## Arquitectura Screenplay
+
+El proyecto implementa el patron Screenplay en ambos dominios (web y API) con la misma forma:
+
+- **Actor** — `OnStage.theActorCalled(...)` / `OnStage.theActorInTheSpotlight()`
+- **Ability** — `BrowseTheWebWithPlaywright` (web), `CallReqresApi` (API)
+- **Task** — acciones reutilizables en `tasks/web/` y `tasks/api/` (OpenHomePage, CreateUser, ListUsers, etc.)
+- **Question** — consultas sobre el estado en `questions/web/` y `questions/api/`
+- **PageObject** — selectores en `ui/`
+
+Para el lado API, la clase `ApiResponse` (`questions/api/ApiResponse.java`) implementa `Question<Response>` y actua como facade unificado: expone atajos (`ApiResponse.statusCode()`, `ApiResponse.field("id")`, `ApiResponse.stringList("data.email")`, `ApiResponse.objectList("data")`, `ApiResponse.headStatusCode(url)`) que delegan a Questions especializadas. De esta forma, los step definitions del API jamas acceden a `RestAssured` directamente — todo pasa por el Actor y los Questions, manteniendo congruencia con el lado web.
 
 ---
 
@@ -199,9 +214,8 @@ reto-tecnico-serenity/
 ## CI/CD
 
 El repositorio incluye GitHub Actions (`.github/workflows/ci.yml`) que:
-- Ejecuta los 12 scenarios en cada push
+- Ejecuta los 13 scenarios en cada push
 - Publica automaticamente el reporte actualizado en GitHub Pages
 - URL: https://alberthruiz.github.io/reto-tecnico-serenity/
 
-Para replicar el CI en un fork propio, configurar secret `REQRES_API_KEY` en:
-`Settings > Secrets and variables > Actions > New repository secret`
+Para replicar el CI en un fork propio, configurar secret `RE
