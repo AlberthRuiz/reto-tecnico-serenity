@@ -22,17 +22,20 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Give mvnw exec permissions
+      - name: Make mvnw executable
         run: chmod +x mvnw
 
+      - name: Compile project
+        run: ./mvnw -B test-compile
+
       - name: Install Playwright browsers
-        run: ./mvnw -B test-compile exec:java -Dexec.mainClass="com.microsoft.playwright.CLI" -Dexec.args="install --with-deps chromium" -Dexec.classpathScope=test
+        run: ./mvnw -B exec:java -Dexec.mainClass="com.microsoft.playwright.CLI" -Dexec.args="install --with-deps chromium" -Dexec.classpathScope=test
 
       - name: Run tests
         env:
           REQRES_API_KEY: ${{ secrets.REQRES_API_KEY }}
           PLAYWRIGHT_HEADLESS: 'true'
-        run: ./mvnw clean verify
+        run: ./mvnw -B verify
 
       - name: Upload Serenity report
         if: always()
