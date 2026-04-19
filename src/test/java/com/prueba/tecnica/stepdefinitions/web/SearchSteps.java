@@ -1,8 +1,10 @@
 package com.prueba.tecnica.stepdefinitions.web;
 
+import com.microsoft.playwright.Page;
 import com.prueba.tecnica.questions.web.SearchResults;
 import com.prueba.tecnica.tasks.web.OpenDocumentationPage;
 import com.prueba.tecnica.tasks.web.SearchFor;
+import com.prueba.tecnica.ui.SearchPage;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -16,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class SearchSteps {
 
-    @Given("{word} se encuentra en la página de Documentacion de Selenium")
+    @Given("{word} se encuentra en la pagina de Documentacion de Selenium")
     public void seEncuentraEnPaginaDocumentacion(String actorName) {
         OnStage.theActorCalled(actorName)
                 .whoCan(BrowseTheWebWithPlaywright.usingTheDefaultConfiguration())
@@ -37,5 +39,13 @@ public class SearchSteps {
                 .as("Resultados de busqueda para '%s'", term)
                 .isNotEmpty()
                 .anyMatch(title -> title.toLowerCase().contains(term.toLowerCase()));
+    }
+
+    @Then("aparece el mensaje {string} en el buscador")
+    public void apareceMensajeEnBuscador(String textoEsperado) {
+        com.microsoft.playwright.Page page = net.serenitybdd.screenplay.playwright.abilities.BrowseTheWebWithPlaywright
+                .as(OnStage.theActorInTheSpotlight()).getCurrentPage();
+        String texto = page.locator(com.prueba.tecnica.ui.SearchPage.NO_RESULTS_MESSAGE).textContent();
+        assertThat(texto).contains(textoEsperado);
     }
 }

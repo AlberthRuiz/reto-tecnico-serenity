@@ -21,13 +21,15 @@ public class SearchFor implements Task {
     }
 
     @Override
-    @Step("{0} busca el término '#term'")
+    @Step("{0} busca el termino '#term'")
     public <T extends Actor> void performAs(T actor) {
         actor.attemptsTo(
                 Click.on(SearchPage.SEARCH_BUTTON),
                 Enter.theValue(term).into(SearchPage.SEARCH_INPUT)
         );
         Page page = BrowseTheWebWithPlaywright.as(actor).getCurrentPage();
-        page.locator(SearchPage.SEARCH_HIT_TITLE).first().waitFor();
+        page.locator(SearchPage.SEARCH_HIT_TITLE + ", " + SearchPage.NO_RESULTS_MESSAGE)
+                .first()
+                .waitFor();
     }
 }

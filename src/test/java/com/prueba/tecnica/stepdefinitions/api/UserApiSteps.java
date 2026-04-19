@@ -1,9 +1,7 @@
 package com.prueba.tecnica.stepdefinitions.api;
 
 import com.prueba.tecnica.abilities.CallReqresApi;
-import com.prueba.tecnica.tasks.api.CreateUser;
-import com.prueba.tecnica.tasks.api.ListUsers;
-import com.prueba.tecnica.tasks.api.UpdateUser;
+import com.prueba.tecnica.tasks.api.*;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -19,6 +17,9 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class UserApiSteps {
+
+    private String primerId;
+
     @Given("el cliente API tiene acceso a Reqres")
     public void elClienteApiTieneAcceso() {
         OnStage.theActorCalled("Cliente API")
@@ -46,9 +47,26 @@ public class UserApiSteps {
         );
     }
 
+    @When("crea otro usuario con el nombre {string} y trabajo {string} otra vez")
+    public void creaOtroUsuarioConElNombreYTrabajo(String name, String job) {
+        primerId = SerenityRest.lastResponse().jsonPath().getString("id");
+        OnStage.theActorInTheSpotlight().attemptsTo(
+                CreateUser.withNameAndJob(name, job)
+        );
+    }
+
     @Then("la respuesta tiene codigo {int}")
     public void laRespuestaTieneCodigo(int code) {
         assertThat(SerenityRest.lastResponse().statusCode()).isEqualTo(code);
+    }
+
+    @Then("los dos ids generados son distintos")
+    public void losIdsSonDistintos() {
+        String segundoId = SerenityRest.lastResponse().jsonPath().getString("id");
+        assertThat(segundoId)
+                .as("El segundo POST debe generar un id distinto al primero")
+                .isNotEqualTo(primerId)
+                .isNotBlank();
     }
 
     @And("la respuesta contiene una lista con al menos un usuario")
@@ -111,4 +129,19 @@ public class UserApiSteps {
         assertThat(Instant.parse(updatedAt)).isNotNull();
     }
 
+    @And("el createdAt esta dentro de los ultimos 60 segundos")
+    public void createdAtEsReciente() {
+        Instant createdAt = Instant.parse(SerenityRest.lastResponse().jsonPath().getString("createdAt"));
+        Instant hace60s = Instant.now().minusSeconds(60);
+        assertThat(createdAt).isAfter(hace60s);
+    }
+
+    @And("todas las URLs de avatar responden 200")
+    public void avataresResponden200() {
+        List<String> avatars = SerenityRest.lastResponse().jsonPath().getList("data.avatar", String.class);
+        for (String url : avatars) {
+            int code = SerenityRest.head(url).getStatusCode();
+            assertThat(code).as("Avatar %s", url).isEqualTo(200);
+        }
+    }
 }
